@@ -1,0 +1,102 @@
+[
+  {
+    "id": "gaming_mid",
+    "name": "Mid-range Gaming Build",
+    "description": "User wants a 1440p gaming PC around $1500",
+    "user_messages": [
+      "I want to build a gaming PC for about $1500. I play AAA games at 1440p.",
+      "I prefer NVIDIA GPUs. Mid tower case is fine. No RGB preference."
+    ],
+    "expected": {
+      "use_case": "gaming",
+      "budget_range": [1200, 1650],
+      "must_have": {
+        "gpu_present": true,
+        "gpu_chipset_contains": "GeForce",
+        "memory_gb_min": 16,
+        "storage_has_nvme": true,
+        "cpu_cores_min": 6
+      },
+      "must_not_have": {
+        "compatibility_errors": true
+      }
+    }
+  },
+  {
+    "id": "ml_workstation",
+    "name": "ML Training Workstation",
+    "description": "Data scientist needs a GPU-heavy ML training rig",
+    "user_messages": [
+      "I need a machine learning training workstation. Budget is $3000. I train large models so I need maximum GPU VRAM and at least 64GB RAM.",
+      "I'll use PyTorch mostly. AMD or Intel CPU is fine. I want room to upgrade RAM later."
+    ],
+    "expected": {
+      "use_case": "ml_training",
+      "budget_range": [2500, 3300],
+      "must_have": {
+        "gpu_present": true,
+        "gpu_vram_min": 12,
+        "memory_gb_min": 64,
+        "storage_has_nvme": true,
+        "cpu_cores_min": 8
+      }
+    }
+  },
+  {
+    "id": "budget_office",
+    "name": "Budget Office PC",
+    "description": "Basic office computer for web, email, and spreadsheets under $500",
+    "user_messages": [
+      "I need a basic office computer for web browsing, email, and spreadsheets. Keep it under $500. No gaming at all."
+    ],
+    "expected": {
+      "use_case": "office",
+      "budget_range": [300, 550],
+      "must_have": {
+        "has_display_output": true,
+        "memory_gb_min": 8,
+        "storage_has_ssd": true
+      }
+    }
+  },
+  {
+    "id": "content_4k",
+    "name": "4K Video Editing Workstation",
+    "description": "Professional 4K video editor using DaVinci Resolve",
+    "user_messages": [
+      "I edit 4K video in DaVinci Resolve and After Effects. Budget is $2500.",
+      "I need at least 64GB RAM and fast storage. I prefer AMD CPUs with lots of cores."
+    ],
+    "expected": {
+      "use_case": "content_creation",
+      "budget_range": [2200, 2800],
+      "must_have": {
+        "cpu_brand": "AMD",
+        "memory_gb_min": 64,
+        "cpu_cores_min": 8,
+        "storage_has_nvme": true,
+        "gpu_present": true
+      }
+    }
+  },
+  {
+    "id": "compact_itx",
+    "name": "Compact Mini-ITX Gaming Build",
+    "description": "Small form factor gaming PC with specific constraints",
+    "user_messages": [
+      "Build me a compact Mini ITX gaming PC. $2000 budget. Must be small form factor.",
+      "I want it quiet. Air cooling only, no liquid cooling please."
+    ],
+    "expected": {
+      "use_case": "gaming",
+      "budget_range": [1700, 2200],
+      "must_have": {
+        "case_type_contains": "Mini ITX",
+        "motherboard_form_factor": "Mini ITX",
+        "cooler_type": "Air",
+        "gpu_present": true,
+        "storage_has_nvme": true
+      }
+    }
+  }
+]

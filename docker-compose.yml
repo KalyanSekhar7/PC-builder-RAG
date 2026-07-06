@@ -1,0 +1,46 @@
+services:
+  pc-config-agent:
+    build: .
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      # Persist agent logs and evaluation reports
+      - ./logs:/app/logs
+      - ./evaluation/reports:/app/evaluation/reports
+    restart: unless-stopped
+    environment:
+      - LOG_FILE=/app/logs/agent.log
+
+  # CLI mode — run interactively
+  # Usage: docker compose run --rm cli
+  cli:
+    build: .
+    env_file:
+      - .env
+    command: ["python", "-m", "src.main"]
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./logs:/app/logs
+      - ./evaluation/reports:/app/evaluation/reports
+    environment:
+      - LOG_FILE=/app/logs/agent.log
+    profiles:
+      - cli
+
+  # Evaluation runner
+  # Usage: docker compose run --rm eval
+  eval:
+    build: .
+    env_file:
+      - .env
+    command: ["python", "evaluation/run_eval.py"]
+    volumes:
+      - ./logs:/app/logs
+      - ./evaluation/reports:/app/evaluation/reports
+    environment:
+      - LOG_FILE=/app/logs/evaluation.log
+    profiles:
+      - eval
