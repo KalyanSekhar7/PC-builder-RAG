@@ -252,6 +252,36 @@ TOOL_DEFINITIONS = [
             "required": ["category", "name"],
         },
     },
+    {
+        "name": "update_build_list",
+        "description": (
+            "Update the user's current build list shown in the UI sidebar. "
+            "Call this EVERY TIME the build changes: after initial build, after adding peripherals "
+            "(keyboard, mouse, monitor, headphones, etc.), after swapping any component, or after "
+            "removing a component. Include ALL components currently in the build — core parts AND peripherals. "
+            "Any component NOT included will be removed from the displayed build."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "components": {
+                    "type": "object",
+                    "description": (
+                        "ALL components in the current build. Keys are category names, values are component names. "
+                        "Include everything: cpu, motherboard, memory, gpu, storage, psu, case, cpu_cooler, "
+                        "and any peripherals/accessories (monitor, keyboard, mouse, headphones, "
+                        "wireless_network_card, thermal_paste, os, etc.)"
+                    ),
+                    "additionalProperties": {"type": "string"},
+                },
+                "total_price": {
+                    "type": "number",
+                    "description": "Total price of ALL components (use the value from check_compatibility for core, add peripheral prices on top)",
+                },
+            },
+            "required": ["components", "total_price"],
+        },
+    },
 ]
 
 

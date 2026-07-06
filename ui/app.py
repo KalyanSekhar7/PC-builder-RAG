@@ -106,9 +106,9 @@ def get_key_spec(component: dict, category: str) -> str:
 
 def format_tool_step(tool_name: str, tool_input: dict) -> str:
     if tool_name == "confirm_requirements":
-        return f"📋 **Confirming requirements** — {tool_input.get('use_case', '?')}, ${tool_input.get('budget', '?')}"
+        return f"📋 Confirming requirements — {tool_input.get('use_case', '?')}, ${tool_input.get('budget', '?')}"
     elif tool_name == "get_optimization_profile":
-        return f"📊 **Getting optimization profile** for {tool_input.get('use_case', '?')} @ ${tool_input.get('total_budget', '?')}"
+        return f"📊 Getting optimization profile for {tool_input.get('use_case', '?')} @ ${tool_input.get('total_budget', '?')}"
     elif tool_name == "search_components":
         cat = tool_input.get('category', '?')
         icon = CATEGORY_ICONS.get(cat, '🔍')
@@ -117,14 +117,17 @@ def format_tool_step(tool_name: str, tool_input: dict) -> str:
         if filters.get('max_price'): f_str += f" <${filters['max_price']}"
         if filters.get('socket'): f_str += f" {filters['socket']}"
         if filters.get('chipset_contains'): f_str += f" '{filters['chipset_contains']}'"
-        return f"{icon} **Searching {CATEGORY_LABELS.get(cat, cat)}**{f_str}"
+        return f"{icon} Searching {CATEGORY_LABELS.get(cat, cat)}{f_str}"
     elif tool_name == "check_compatibility":
-        return "✅ **Checking compatibility...**"
+        return "✅ Checking compatibility..."
     elif tool_name == "optimize_build":
-        return "⚡ **Optimizing build...**"
+        return "⚡ Optimizing build..."
     elif tool_name == "get_component_details":
-        return f"🔎 **Looking up** {tool_input.get('name', '?')}"
-    return f"🔧 **{tool_name}**"
+        return f"🔎 Looking up {tool_input.get('name', '?')}"
+    elif tool_name == "update_build_list":
+        count = len(tool_input.get("components", {}))
+        return f"📝 Updating build list ({count} components)"
+    return f"🔧 {tool_name}"
 
 
 THINKING_CSS = """
@@ -212,11 +215,11 @@ def send_message_and_get_response(user_msg: str):
             call_count[0] += 1
             if call_count[0] > 1:
                 # Between tool results and next response — LLM is reasoning
-                steps.append("💭 *Reasoning over results...*")
+                steps.append("💭 Reasoning over results...")
                 thinking.markdown(_render_thinking(steps), unsafe_allow_html=True)
             else:
                 steps.clear()
-                steps.append("💭 *Reading your message...*")
+                steps.append("💭 Reading your message...")
                 thinking.markdown(_render_thinking(steps), unsafe_allow_html=True)
             return original_call_llm()
 
@@ -337,47 +340,109 @@ def verify_prices_in_response(response: str, agent) -> str | None:
 
 
 def extract_builds_from_trace(agent):
-    for event in agent.get_trace():
+    """Extract the latest build state from agent trace — handles both
+    check_compatibility (core build) and update_build_list (full build with peripherals)."""
+
+    # Look for update_build_list calls (most authoritative — includes peripherals)
+    for event in reversed(agent.get_trace()):
+        if event.get("event") == "build_updated":
+            data = event.get("data", {})
+            components = data.get("components", {})
+            total = data.get("total_price", 0)
+            if components:
+                # Replace the entire build list with this latest state
+                st.session_state.builds = [{
+                    "name": "Current Build",
+                    "components": components,
+                    "total_price": total,
+                    "power_draw": 0,
+                    "compatible": True,
+                    "warnings": [],
+                }]
+                return  # update_build_list is the source of truth
+
+    # Fallback: extract from check_compatibility (core components only)
+    for event in reversed(agent.get_trace()):
         if event.get("event") == "tool_call" and event.get("data", {}).get("tool") == "check_compatibility":
             try:
                 result_str = event["data"].get("result_preview", "{}")
                 result = json.loads(result_str) if isinstance(result_str, str) else result_str
                 if result.get("compatible", False):
                     build_input = event["data"].get("input", {})
-                    build = {
-                        "name": f"Build {len(st.session_state.builds) + 1}",
+                    st.session_state.builds = [{
+                        "name": "Current Build",
                         "components": build_input,
                         "total_price": result.get("total_price", 0),
                         "power_draw": result.get("estimated_power_draw", 0),
                         "compatible": True,
                         "warnings": result.get("warnings", []),
-                    }
-                    existing = [b["components"] for b in st.session_state.builds]
-                    if build_input not in existing:
-                        st.session_state.builds.append(build)
+                    }]
+                    return
             except (json.JSONDecodeError, KeyError):
                 pass
 
 
+# Display order for sidebar — core first, then peripherals, then accessories
+SIDEBAR_DISPLAY_ORDER = [
+    # Core
+    "cpu", "motherboard", "memory", "gpu", "storage", "psu", "case", "cpu_cooler",
+    # Peripherals
+    "monitor", "keyboard", "mouse", "headphones", "speakers", "webcam",
+    # Networking
+    "wireless_network_card", "wired_network_card", "sound_card",
+    # Accessories
+    "case_fan", "thermal_paste", "fan_controller", "ups",
+    # Software
+    "os",
+]
+
+
 def render_build_sidebar():
-    """Render the build in the sidebar."""
+    """Render the full build in the sidebar — core + peripherals + accessories."""
     with st.sidebar:
         st.divider()
         if st.session_state.builds:
-            st.markdown("### 🔧 Your Build")
-            build = st.session_state.builds[-1]  # latest build
+            build = st.session_state.builds[-1]
             components = build.get("components", {})
-            for cat in CORE_CATEGORIES:
+
+            # Split into sections
+            core = {k: v for k, v in components.items() if k in CORE_CATEGORIES}
+            extras = {k: v for k, v in components.items() if k not in CORE_CATEGORIES}
+
+            st.markdown("### 🔧 Your Build")
+
+            # Core components
+            for cat in SIDEBAR_DISPLAY_ORDER:
                 comp_name = components.get(cat)
                 if comp_name:
                     if isinstance(comp_name, list):
                         comp_name = ", ".join(comp_name)
                     icon = CATEGORY_ICONS.get(cat, "📦")
+                    label = CATEGORY_LABELS.get(cat, cat)
+
+                    # Visual separator before peripherals section
+                    if cat == "monitor" and extras:
+                        st.divider()
+                        st.caption("PERIPHERALS & EXTRAS")
+
+                    st.markdown(f"{icon} **{label}**")
+                    st.caption(f"  {comp_name}")
+
+            # Also show any categories not in our display order (catch-all)
+            for cat, comp_name in components.items():
+                if cat not in SIDEBAR_DISPLAY_ORDER and comp_name:
+                    if isinstance(comp_name, list):
+                        comp_name = ", ".join(comp_name)
+                    icon = CATEGORY_ICONS.get(cat, "📦")
                     st.markdown(f"{icon} **{CATEGORY_LABELS.get(cat, cat)}**")
                     st.caption(f"  {comp_name}")
+
             st.divider()
-            st.markdown(f"💰 **Total: ${build.get('total_price', 0):.2f}**")
-            st.caption(f"⚡ ~{build.get('power_draw', 0)}W")
+            total = build.get("total_price", 0)
+            st.markdown(f"💰 **Total: ${total:.2f}**")
+            power = build.get("power_draw", 0)
+            if power:
+                st.caption(f"⚡ ~{power}W")
         else:
             st.markdown("""<div style="text-align: center; padding: 20px; color: #666;">
             <div style="font-size: 2em;">🔧</div><p>Build appears here</p></div>""",

@@ -125,11 +125,22 @@ The optimization profile returns uncompromisable items. These get priority budge
 - TDP > 150W: 280mm+ AIO
 
 ## STEP 5: Validate and Present
-1. Call `check_compatibility` — ONCE. If it passes, present the build immediately.
+1. Call `check_compatibility` — ONCE. If it passes, proceed.
 2. If it fails, fix the specific error and re-search ONLY the component that caused the error.
 3. If the validator returns issues, address them by swapping the specific component — don't restart the whole build.
 4. Do NOT call optimize_build unless the user has 20%+ budget remaining and you think there's a clear upgrade.
 5. NEVER ask the user "is this okay?" before presenting — present the build, then let them give feedback.
+6. Call `update_build_list` with ALL components (core + peripherals + accessories) and the total price. This updates the sidebar in the UI.
+
+### IMPORTANT: Keeping the Build List Updated
+Call `update_build_list` EVERY TIME the build changes:
+- After the initial build is finalized (include core components)
+- After adding peripherals (keyboard, mouse, monitor, headphones, etc.) — include EVERYTHING
+- After swapping any component — include the updated full list
+- After removing a component — include the list WITHOUT the removed item
+- The components dict should contain ALL items currently in the build, not just the new ones
+
+Example: if the core build has cpu, motherboard, memory, gpu, storage, psu, case, cpu_cooler, and the user adds a keyboard and monitor, call update_build_list with ALL 10 components.
 
 ## STEP 6: Present Final Build
 

@@ -142,6 +142,19 @@ class AgentLoop:
                 }),
             }
 
+        # Handle update_build_list — LLM is declaring the current build state
+        if tool_name == "update_build_list":
+            logger.info(f"Build list updated: {json.dumps(tool_input, default=str)[:300]}")
+            self._log_trace("build_updated", tool_input)
+            return {
+                "type": "tool_result",
+                "tool_use_id": tool_id,
+                "content": json.dumps({
+                    "status": "updated",
+                    "message": "Build list updated in the UI sidebar.",
+                }),
+            }
+
         # Guard: block component search tools until requirements are confirmed by the LLM
         tools_needing_requirements = {
             "search_components", "get_optimization_profile",
